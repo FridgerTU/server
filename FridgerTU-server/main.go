@@ -8,6 +8,16 @@ import (
 	"strings"
 )
 
+const baseUrl = "http://www.recipepuppy.com/api/?"
+
+func handler(writer http.ResponseWriter, request *http.Request) {
+	writer.WriteHeader(http.StatusOK)
+	_, err := writer.Write([]byte(`{"testKey":"` + request.URL.String() + `"}`))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func executeRequest(url string) (response *Response, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -40,4 +50,11 @@ func main() {
 		rr = append(rr, strings.Split(recipe.Ingredients, ", "))
 	}
 	fmt.Printf("%v\n", rr)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+	err = http.ListenAndServe(":8000", mux)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
