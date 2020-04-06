@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	Url "net/url"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -14,7 +17,6 @@ func NewController() *http.ServeMux {
 	mux.HandleFunc("/", basePathHandler)
 	mux.HandleFunc("/api/v1/recipes", recipesHandler)
 	mux.HandleFunc("/api/v1/recipe", recipeHandler)
-	mux.HandleFunc("/api/v1/random", randomHandler)
 	return mux
 }
 
@@ -100,7 +102,7 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 	var result []resultJson
 
 	for name, recipe := range recipesResult {
-		bytes, err := executeGetRequest(recipe.Thumbnail + "/preview")
+		thumbnail, err := getThumbnail(request.Header["X-Recipe-Thumbnail"], recipe.Thumbnail)
 		if err != nil {
 			writer.WriteHeader(http.StatusInternalServerError)
 			if _, err := writer.Write([]byte(err.Error())); err != nil {
@@ -111,7 +113,7 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 
 		result = append(result, resultJson{
 			RecipeName: name,
-			Thumbnail:  base64.StdEncoding.EncodeToString(bytes),
+			Thumbnail:  thumbnail,
 		})
 	}
 
@@ -140,10 +142,9 @@ Response
 	“instructions”:<string>,
 	“ingredients”:[{
 		“name”:<string>,
-		 “quantity”:<float>,
-		 “quantityType”:<string>
+		“quantity”:<string>
 	}],
- 	“timeToCook”:<float>”
+ 	“timeToCook”:<float>
 }
 */
 //TODO refactor
@@ -162,7 +163,7 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	url := "https://www.themealdb.com/api/json/v1/1/search.php?s=" + recipeName[0]
+	url := "https://www.themealdb.com/api/json/v1/1/search.php?s=" + Url.QueryEscape(recipeName[0])
 
 	bytes, err := executeGetRequest(url)
 	if err != nil {
@@ -187,21 +188,42 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	writer.WriteHeader(http.StatusOK)
-	if _, err := writer.Write([]byte(fmt.Sprintf("%v", recipesJson.Meals[0]))); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	//TODO print custom json
-}
+	recipe := recipesJson.Meals[0]
 
-func randomHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != "GET" {
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+	recipeType := reflect.ValueOf(recipe)
+
+	var ingredients []Ingredient
+
+	for i := 1; i <= 20; i++ {
+		ingredientField := recipeType.FieldByName("Ingredient"+strconv.FormatInt(int64(i), 10))
+		quantityField := recipeType.FieldByName("Measure"+strconv.FormatInt(int64(i), 10))
+
+		if ingredientField.String() != "" {
+			ingredients = append(ingredients, Ingredient{
+				Name:     ingredientField.String(),
+				Quantity: quantityField.String(),
+			})
+		}
+	}
+
+	thumbnail, err := getThumbnail(request.Header["X-Recipe-Thumbnail"], recipe.Thumbnail)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		if _, err := writer.Write([]byte(err.Error())); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		return
 	}
 
-	url := "https://www.themealdb.com/api/json/v1/1/random.php"
-	bytes, err := executeGetRequest(url)
+	res := Result{
+		RecipeName:   recipe.Name,
+		Thumbnail:    thumbnail,
+		Instructions: recipe.Instructions,
+		Ingredients:  ingredients,
+		TimeToCook:   0,
+	}
+
+	resBytes, err := json.Marshal(res)
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		if _, err := writer.Write([]byte(err.Error())); err != nil {
@@ -211,8 +233,18 @@ func randomHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writer.WriteHeader(http.StatusOK)
-	if _, err := writer.Write(bytes); err != nil {
+	if _, err := writer.Write(resBytes); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	//TODO print a custom json
+}
+
+func getThumbnail(headerVal []string, thumbnailUrl string) (string, error) {
+	if headerVal != nil && headerVal[0] == "BASE64" {
+		bytes, err := executeGetRequest(thumbnailUrl + "/preview")
+		if err != nil {
+			return "", err
+		}
+		return base64.StdEncoding.EncodeToString(bytes), nil
+	}
+	return strings.ReplaceAll(thumbnailUrl, "\\/", "/") + "/preview", nil
 }

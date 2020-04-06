@@ -56,3 +56,16 @@ type Recipe struct {
 	Source       string `json:"strSource"`
 	DateModified string `json:"dateModified"`
 }
+
+type Ingredient struct {
+	Name     string `json:"name"`
+	Quantity string `json:"quantity"`
+}
+
+type Result struct {
+	RecipeName   string       `json:"recipeName"`
+	Thumbnail    string       `json:"thumbnail"`
+	Instructions string       `json:"instructions"`
+	Ingredients  []Ingredient `json:"ingredients"`
+	TimeToCook   float32      `json:"timeToCook"`
+}
