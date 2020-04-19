@@ -3,7 +3,6 @@ applications:
   - name: Fridger-server
     memory: 512M
     instances: 1
-    path: ./server.zip
     buildpacks:
       - go_buildpack
     env:
