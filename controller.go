@@ -25,6 +25,7 @@ func basePathHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "text/plain")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(msg)))
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	if _, err := writer.Write([]byte(msg)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -132,6 +133,7 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(res)))
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	if _, err := writer.Write(res); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -240,6 +242,7 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(resBytes)))
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	if _, err := writer.Write(resBytes); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
