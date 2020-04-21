@@ -21,8 +21,11 @@ func NewController() *http.ServeMux {
 }
 
 func basePathHandler(writer http.ResponseWriter, request *http.Request) {
+	msg := "available endpoints: /api/v1/recipes, /api/v1/recipe"
 	writer.WriteHeader(http.StatusOK)
-	if _, err := writer.Write([]byte("hello")); err != nil {
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(msg)))
+	if _, err := writer.Write([]byte(msg)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
 }
@@ -127,6 +130,8 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writer.WriteHeader(http.StatusOK)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(res)))
 	if _, err := writer.Write(res); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -233,6 +238,8 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writer.WriteHeader(http.StatusOK)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(resBytes)))
 	if _, err := writer.Write(resBytes); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
