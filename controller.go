@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func NewController() *http.ServeMux {
@@ -26,6 +27,11 @@ func basePathHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "text/plain")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(msg)))
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	writer.Header().Set("Access-Control-Request-Method", "GET")
+	writer.Header().Set("Access-Control-Request-Headers", "*")
+	writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(int((time.Hour * 12).Seconds())))
+	writer.Header().Set("Access-Control-Expose-Headers", "*")
 	if _, err := writer.Write([]byte(msg)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -134,6 +140,11 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(res)))
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	writer.Header().Set("Access-Control-Request-Method", "GET")
+	writer.Header().Set("Access-Control-Request-Headers", "*")
+	writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(int((time.Hour * 12).Seconds())))
+	writer.Header().Set("Access-Control-Expose-Headers", "*")
 	if _, err := writer.Write(res); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -243,6 +254,11 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(resBytes)))
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	writer.Header().Set("Access-Control-Request-Method", "GET")
+	writer.Header().Set("Access-Control-Request-Headers", "*")
+	writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	writer.Header().Set("Access-Control-Max-Age", strconv.Itoa(int((time.Hour * 12).Seconds())))
+	writer.Header().Set("Access-Control-Expose-Headers", "*")
 	if _, err := writer.Write(resBytes); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
