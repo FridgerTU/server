@@ -266,11 +266,11 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 
 func getThumbnail(headerVal []string, thumbnailUrl string) (string, error) {
 	if headerVal != nil && headerVal[0] == "BASE64" {
-		bytes, err := executeGetRequest(thumbnailUrl + "/preview")
+		bytes, err := executeGetRequest(thumbnailUrl)
 		if err != nil {
 			return "", err
 		}
 		return base64.StdEncoding.EncodeToString(bytes), nil
 	}
-	return strings.ReplaceAll(thumbnailUrl, "\\/", "/") + "/preview", nil
+	return strings.ReplaceAll(thumbnailUrl, "\\/", "/"), nil
 }
