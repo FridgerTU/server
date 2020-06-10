@@ -14,7 +14,7 @@ func NewController() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", basePathHandler)
 	mux.HandleFunc("/api/v1/recipes", recipesHandler)
-	mux.HandleFunc("/api/v1/recipe", recipeHandler)
+	mux.HandleFunc("/api/v1/recipe/", recipeHandler)
 	return mux
 }
 
