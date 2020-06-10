@@ -88,23 +88,8 @@ func recipesHandler(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		containsAll := true
 		for _, recipe := range recipes.Meals {
-			_, ingredientsNew, err := searchRecipe(recipe.Id)
-			if err != nil {
-				writer.WriteHeader(http.StatusInternalServerError)
-				writer.Write([]byte(err.Error()))
-				return
-			}
-			for _, ingr := range allIngredients {
-				if !contains(ingredientsNew, ingr) {
-					containsAll = false
-				}
-			}
-
-			if containsAll {
-				recipesResult[recipe.Name] = recipe
-			}
+			recipesResult[recipe.Name] = recipe
 		}
 	}
 
@@ -181,11 +166,43 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	recipe, ingredients, err := searchRecipe(recipeId)
+	url := "https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + recipeId
+
+	bytes, err := executeGetRequest(url)
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		writer.Write([]byte(err.Error()))
 		return
+	}
+
+	type recipes struct {
+		Meals []Recipe `json:"meals"`
+	}
+
+	recipesJson := recipes{}
+	err = json.Unmarshal(bytes, &recipesJson)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(err.Error()))
+		return
+	}
+
+	recipe := recipesJson.Meals[0]
+
+	recipeType := reflect.ValueOf(recipe)
+
+	var ingredients []Ingredient
+
+	for i := 1; i <= 20; i++ {
+		ingredientField := recipeType.FieldByName("Ingredient"+strconv.Itoa(i))
+		quantityField := recipeType.FieldByName("Measure"+strconv.Itoa(i))
+
+		if ingredientField.String() != "" {
+			ingredients = append(ingredients, Ingredient{
+				Name:     ingredientField.String(),
+				Quantity: quantityField.String(),
+			})
+		}
 	}
 
 	thumbnail, err := getThumbnail(request.Header["X-Recipe-Thumbnail"], recipe.Thumbnail)
@@ -222,45 +239,6 @@ func recipeHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(resBytes)
 }
 
-func searchRecipe(id string) (Recipe, []Ingredient, error) {
-	url := "https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + id
-
-	bytes, err := executeGetRequest(url)
-	if err != nil {
-		return Recipe{}, nil, err
-	}
-
-	type recipes struct {
-		Meals []Recipe `json:"meals"`
-	}
-
-	recipesJson := recipes{}
-	err = json.Unmarshal(bytes, &recipesJson)
-	if err != nil {
-		return Recipe{}, nil, err
-	}
-
-	recipe := recipesJson.Meals[0]
-
-	recipeType := reflect.ValueOf(recipe)
-
-	var ingredients []Ingredient
-
-	for i := 1; i <= 20; i++ {
-		ingredientField := recipeType.FieldByName("Ingredient"+strconv.Itoa(i))
-		quantityField := recipeType.FieldByName("Measure"+strconv.Itoa(i))
-
-		if ingredientField.String() != "" {
-			ingredients = append(ingredients, Ingredient{
-				Name:     ingredientField.String(),
-				Quantity: quantityField.String(),
-			})
-		}
-	}
-
-	return recipe, ingredients, nil
-}
-
 func getThumbnail(headerVal []string, thumbnailUrl string) (string, error) {
 	if headerVal != nil && headerVal[0] == "BASE64" {
 		bytes, err := executeGetRequest(thumbnailUrl)
@@ -270,13 +248,4 @@ func getThumbnail(headerVal []string, thumbnailUrl string) (string, error) {
 		return base64.StdEncoding.EncodeToString(bytes), nil
 	}
 	return strings.ReplaceAll(thumbnailUrl, "\\/", "/"), nil
-}
-
-func contains(arr []Ingredient, key string) bool {
-	for _, elem := range arr {
-		if key == elem.Name {
-			return true
-		}
-	}
-	return false
 }
